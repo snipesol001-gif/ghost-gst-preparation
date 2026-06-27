@@ -144,3 +144,12 @@ function finishExam() {
 }
 
 initExam();
+
+// --- Early Submit Logic ---
+window.confirmSubmit = function() {
+    document.getElementById('submitModal').style.display = 'flex';
+}
+
+window.closeSubmitModal = function() {
+    document.getElementById('submitModal').style.display = 'none';
+}

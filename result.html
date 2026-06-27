@@ -5,11 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ghost GST - Results</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <style>
+        .high-score-badge {
+            display: none;
+            background: linear-gradient(45deg, gold, #ffaa00);
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 15px auto;
+            width: fit-content;
+            animation: popIn 0.5s ease-out;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <div class="card" style="text-align: center;">
             <h1>Exam Complete! 👻</h1>
+            
+            <!-- New High Score Badge -->
+            <div class="high-score-badge" id="highScoreBadge">🏆 New Personal Best!</div>
+
             <h2 id="scoreDisplay"></h2>
             <p id="passFailText" style="font-size: 18px; margin-bottom: 20px;"></p>
 
@@ -34,7 +58,7 @@
         </div>
     </div>
 
-                <script>
+    <script>
         // 1. Standard Script - ALWAYS runs to show the score immediately
         const user = localStorage.getItem('gst_active_user');
         if(!user) { window.location.href = 'index.html'; }
@@ -83,17 +107,23 @@
         window.logout = logout;
     </script>
 
-    <!-- 2. Module Script - Runs safely in the background to update Leaderboard -->
+    <!-- 2. Module Script - Runs safely in the background to update Leaderboard & Check High Score -->
     <script type="module">
         import { db, ref, get, set } from "./js/firebase.js";
 
-        // Try to save to Firebase. If it fails, it won't break the page.
         try {
             const userScoreRef = ref(db, 'scores/' + user);
             get(userScoreRef).then((snapshot) => {
                 const prevData = snapshot.val() || { bestScore: 0, totalPoints: 0 };
-                const newTotalPoints = prevData.totalPoints + pointsEarned;
                 
+                // Check if new score is higher than previous best
+                if (percentage > prevData.bestScore && score > 0) {
+                    // Trigger Confetti!
+                    triggerCelebration();
+                }
+                
+                // Update Firebase
+                const newTotalPoints = prevData.totalPoints + pointsEarned;
                 set(userScoreRef, {
                     username: user,
                     bestScore: Math.max(prevData.bestScore, percentage),
@@ -102,6 +132,27 @@
             });
         } catch (e) {
             console.log("Firebase save skipped:", e);
+        }
+
+        function triggerCelebration() {
+            // Show badge
+            document.getElementById('highScoreBadge').style.display = 'block';
+            
+            // Fire confetti
+            var duration = 15 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+            var interval = setInterval(function() {
+                var timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) return clearInterval(interval);
+
+                var particleCount = 50 * (timeLeft / duration);
+                
+                // Shoot from left and right
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: Math.random() * 0.2, y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: Math.random() * 0.8 + 0.2, y: Math.random() - 0.2 } }));
+            }, 250);
         }
     </script>
 </body>
