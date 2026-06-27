@@ -5,11 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ghost GST - Portal</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .input-wrap { position: relative; width: 100%; }
+        .input-wrap input { padding-right: 45px; }
+        .eye-icon { position: absolute; right: 15px; top: 22px; cursor: pointer; opacity: 0.7; font-size: 18px; user-select: none; }
+        .eye-icon:hover { opacity: 1; }
+    </style>
 </head>
 <body>
     <div class="container">
         <div class="card" style="text-align: center;">
-            <h1>👻 Ghost GST Preparation</h1>
+            <h1>Ghost GST Preparation</h1>
             <h2>Nigerian People & Culture (GST 112)</h2>
             
             <div class="tab-container">
@@ -20,7 +26,10 @@
             <!-- Login Form -->
             <div id="loginForm">
                 <input type="text" id="loginUser" placeholder="Username">
-                <input type="password" id="loginPass" placeholder="Password">
+                <div class="input-wrap">
+                    <input type="password" id="loginPass" placeholder="Password">
+                    <span class="eye-icon" onclick="togglePass('loginPass', this)">👁️</span>
+                </div>
                 <div class="error-msg" id="loginError">Invalid username or password.</div>
                 <button onclick="login()">Login</button>
             </div>
@@ -28,22 +37,33 @@
             <!-- Signup Form -->
             <div id="signupForm" style="display: none;">
                 <input type="text" id="signupUser" placeholder="Choose a Username">
-                <input type="password" id="signupPass" placeholder="Choose a Password">
+                <div class="input-wrap">
+                    <input type="password" id="signupPass" placeholder="Choose a Password">
+                    <span class="eye-icon" onclick="togglePass('signupPass', this)">👁️</span>
+                </div>
                 <div class="error-msg" id="signupError">Username already taken!</div>
                 <button onclick="signup()">Create Account</button>
             </div>
         </div>
     </div>
 
-        <script>
-        // Removed the auto-login redirect so it always asks for login
-        
-        // Mock Database Setup
-        if(!localStorage.getItem('gst_users')) {
-            localStorage.setItem('gst_users', JSON.stringify([])); 
+    <script>
+        if(localStorage.getItem('gst_active_user')) {
+            window.location.href = 'dashboard.html';
         }
-        if(!localStorage.getItem('gst_scores')) {
-            localStorage.setItem('gst_scores', JSON.stringify([])); 
+
+        if(!localStorage.getItem('gst_users')) localStorage.setItem('gst_users', JSON.stringify([]));
+        if(!localStorage.getItem('gst_scores')) localStorage.setItem('gst_scores', JSON.stringify([]));
+
+        function togglePass(id, el) {
+            const input = document.getElementById(id);
+            if(input.type === 'password') {
+                input.type = 'text';
+                el.innerText = '🙈';
+            } else {
+                input.type = 'password';
+                el.innerText = '👁️';
+            }
         }
 
         function switchTab(tab) {
@@ -64,9 +84,7 @@
             const user = document.getElementById('loginUser').value.trim();
             const pass = document.getElementById('loginPass').value;
             const users = JSON.parse(localStorage.getItem('gst_users'));
-            
             const found = users.find(u => u.username === user && u.password === pass);
-            
             if(found) {
                 localStorage.setItem('gst_active_user', user);
                 window.location.href = 'dashboard.html';
@@ -79,9 +97,7 @@
             const user = document.getElementById('signupUser').value.trim();
             const pass = document.getElementById('signupPass').value;
             const users = JSON.parse(localStorage.getItem('gst_users'));
-            
             const exists = users.find(u => u.username === user);
-            
             if(exists) {
                 document.getElementById('signupError').style.display = 'block';
             } else {
