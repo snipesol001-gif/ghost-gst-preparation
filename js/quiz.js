@@ -3,7 +3,6 @@ let score = 0;
 let selectedQuestions = [];
 let userAnswers = [];
 
-// Redirect if not logged in
 if(!localStorage.getItem('gst_active_user')) {
     window.location.href = 'index.html';
 }
@@ -22,6 +21,33 @@ function initExam() {
     selectedQuestions = questionBank.slice(0, limit);
     userAnswers = new Array(selectedQuestions.length).fill(null);
     loadQuestion();
+}
+
+// Helper function to build the explanation HTML
+function getExplanationHTML(q, userChoice) {
+    let html = "";
+    const isCorrect = userChoice === q.answer;
+    
+    // If user got it wrong, show what they selected and why it's wrong
+    if (!isCorrect) {
+        const wrongText = q.options[userChoice];
+        // Use specific option explanation if available, otherwise generic fallback
+        const wrongExplain = q.optionExplanations ? q.optionExplanations[userChoice] : "This option is incorrect based on the historical facts.";
+        html += `<div style="color: var(--danger); margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,0,85,0.3);">
+                    <strong>❌ Your Selection (${wrongText}):</strong><br>
+                    ${wrongExplain}
+                 </div>`;
+    }
+
+    // Always show the correct answer and why it's right
+    const correctText = q.options[q.answer];
+    const correctExplain = q.optionExplanations ? q.optionExplanations[q.answer] : q.explanation;
+    html += `<div style="color: var(--success);">
+                <strong>✅ Correct Answer (${correctText}):</strong><br>
+                ${correctExplain}
+             </div>`;
+
+    return html;
 }
 
 function loadQuestion() {
@@ -46,18 +72,22 @@ function loadQuestion() {
         optionsContainer.appendChild(div);
     });
 
+    // If user already answered this question (e.g. they hit Previous button), restore the state
     if (userAnswers[currentQuestion] !== null) {
         const options = document.querySelectorAll('.option');
         const userChoice = userAnswers[currentQuestion];
         options.forEach(opt => opt.classList.add('disabled'));
+        
         if (userChoice === q.answer) {
             options[userChoice].classList.add('correct');
         } else {
             options[userChoice].classList.add('wrong');
             options[q.answer].classList.add('correct');
         }
-        document.getElementById('explanationText').innerText = q.explanation;
+
+        document.getElementById('explanationText').innerHTML = getExplanationHTML(q, userChoice);
         document.getElementById('explanationBox').style.display = 'block';
+        
         let nextBtn = document.getElementById('nextBtn');
         nextBtn.style.display = 'block';
         nextBtn.innerText = currentQuestion === selectedQuestions.length - 1 ? 'Finish Exam' : 'Next Question';
@@ -77,11 +107,13 @@ function selectOption(index, element) {
         score++;
     } else {
         element.classList.add('wrong');
-        options[q.answer].classList.add('correct');
+        options[q.answer].classList.add('correct'); // Highlight the right one
     }
 
-    document.getElementById('explanationText').innerText = q.explanation;
+    // Generate and show the dual explanation
+    document.getElementById('explanationText').innerHTML = getExplanationHTML(q, index);
     document.getElementById('explanationBox').style.display = 'block';
+    
     let nextBtn = document.getElementById('nextBtn');
     nextBtn.style.display = 'block';
     nextBtn.innerText = currentQuestion === selectedQuestions.length - 1 ? 'Finish Exam' : 'Next Question';
@@ -106,7 +138,6 @@ function prevQuestion() {
 }
 
 function finishExam() {
-    // Save as temporary score for result.html to read
     localStorage.setItem('gst_temp_score', score);
     localStorage.setItem('gst_temp_total', selectedQuestions.length);
     window.location.href = 'result.html';
