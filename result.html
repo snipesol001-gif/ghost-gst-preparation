@@ -34,20 +34,18 @@
         </div>
     </div>
 
-            <script type="module">
-        import { db, ref, get, set } from "./js/firebase.js";
-
+                <script>
+        // 1. Standard Script - ALWAYS runs to show the score immediately
         const user = localStorage.getItem('gst_active_user');
         if(!user) { window.location.href = 'index.html'; }
 
-        const score = parseInt(localStorage.getItem('gst_temp_score'));
-        const total = parseInt(localStorage.getItem('gst_temp_total'));
+        const score = parseInt(localStorage.getItem('gst_temp_score') || 0);
+        const total = parseInt(localStorage.getItem('gst_temp_total') || 1);
         const percentage = Math.round((score / total) * 100);
         const pointsEarned = score * 10; // 10 points per correct answer
 
         document.getElementById('scoreDisplay').innerText = `You scored ${score} / ${total}`;
 
-        // Rank Logic
         function getRank(totalPoints) {
             if (totalPoints >= 1000) return "Legendary";
             if (totalPoints >= 500) return "Gold";
@@ -56,25 +54,24 @@
             return "Rookie";
         }
 
-        // 1. Save Score & Points to Firebase
-        const userScoreRef = ref(db, 'scores/' + user);
-        get(userScoreRef).then((snapshot) => {
-            const prevData = snapshot.val() || { bestScore: 0, totalPoints: 0 };
-            const newTotalPoints = prevData.totalPoints + pointsEarned;
-            
-            set(userScoreRef, {
-                username: user,
-                bestScore: Math.max(prevData.bestScore, percentage),
-                totalPoints: newTotalPoints
-            });
+        // Calculate current points from local storage first so it shows instantly
+        let localPoints = parseInt(localStorage.getItem('gst_total_points') || 0);
+        let newTotalPoints = localPoints + pointsEarned;
+        localStorage.setItem('gst_total_points', newTotalPoints);
 
-            // Display Rank and Points on the page
-            document.getElementById('passFailText').innerHTML = `
-                🏆 Rank: <strong>${getRank(newTotalPoints)}</strong><br>
-                ⭐ Points Earned: <strong>+${pointsEarned}</strong> (Total: ${newTotalPoints})
-            `;
-            document.getElementById('passFailText').style.color = "var(--primary)";
-        });
+        let resultText = "";
+        if (percentage >= 50) {
+            resultText = `🎉 Congratulations ${user}! You passed.<br>`;
+        } else {
+            resultText = `😕 Oops ${user}! You failed. Review the notes.<br>`;
+        }
+        
+        resultText += `
+            🏆 Rank: <strong>${getRank(newTotalPoints)}</strong><br>
+            ⭐ Points Earned: <strong>+${pointsEarned}</strong> (Total: ${newTotalPoints})
+        `;
+        document.getElementById('passFailText').innerHTML = resultText;
+        document.getElementById('passFailText').style.color = percentage >= 50 ? "var(--success)" : "var(--danger)";
 
         function replay() { window.location.href = 'quiz.html'; }
         function logout() {
@@ -84,6 +81,28 @@
 
         window.replay = replay;
         window.logout = logout;
+    </script>
+
+    <!-- 2. Module Script - Runs safely in the background to update Leaderboard -->
+    <script type="module">
+        import { db, ref, get, set } from "./js/firebase.js";
+
+        // Try to save to Firebase. If it fails, it won't break the page.
+        try {
+            const userScoreRef = ref(db, 'scores/' + user);
+            get(userScoreRef).then((snapshot) => {
+                const prevData = snapshot.val() || { bestScore: 0, totalPoints: 0 };
+                const newTotalPoints = prevData.totalPoints + pointsEarned;
+                
+                set(userScoreRef, {
+                    username: user,
+                    bestScore: Math.max(prevData.bestScore, percentage),
+                    totalPoints: newTotalPoints
+                });
+            });
+        } catch (e) {
+            console.log("Firebase save skipped:", e);
+        }
     </script>
 </body>
 </html>
