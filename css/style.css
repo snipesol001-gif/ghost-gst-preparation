@@ -123,3 +123,115 @@ button:disabled { background: #333; color: #666; cursor: not-allowed; }
 @keyframes fadeOut { to { opacity: 0; transform: translateY(-15px); } }
 .note-box { background: #0f0f1a; border: 1px solid #2a2a3a; padding: 20px; border-radius: 12px; margin-top: 20px; text-align: left; line-height: 1.6; color: var(--text); }
 .error-msg { color: var(--danger); margin-top: 10px; display: none; font-size: 14px; }
+
+/* --- Glassmorphism Leaderboard Podium --- */
+.podium-container {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 25px;
+    margin: 80px 0 40px; /* Increased top margin so the floating crown doesn't hit the title */
+    perspective: 1000px;
+}
+
+.podium-item {
+    /* Glassmorphism Effect */
+    background: rgba(20, 20, 35, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    
+    border-radius: 16px 16px 0 0;
+    padding: 60px 15px 25px; /* Increased top padding so text sits lower */
+    text-align: center;
+    width: 32%;
+    max-width: 220px; /* Made them wider */
+    position: relative;
+    /* REMOVED overflow: hidden so the icons can float freely */
+    transition: transform 0.3s ease;
+}
+
+.podium-item:hover {
+    transform: translateY(-5px) scale(1.02);
+}
+
+/* Glass highlight reflection on top */
+.podium-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.1), transparent);
+    pointer-events: none;
+    border-radius: 16px 16px 0 0; /* Match the box corners */
+}
+
+/* Rank Specific Styles - TALLER NOW */
+.podium-1 {
+    height: 280px; 
+    border-color: rgba(255, 215, 0, 0.4);
+    box-shadow: 0 10px 40px rgba(255, 215, 0, 0.15), inset 0 0 20px rgba(255, 215, 0, 0.05);
+    order: 2;
+    z-index: 2;
+}
+.podium-2 {
+    height: 220px; 
+    border-color: rgba(192, 192, 192, 0.4);
+    box-shadow: 0 10px 40px rgba(192, 192, 192, 0.1), inset 0 0 20px rgba(192, 192, 192, 0.05);
+    order: 1;
+}
+.podium-3 {
+    height: 190px; 
+    border-color: rgba(205, 127, 50, 0.4);
+    box-shadow: 0 10px 40px rgba(205, 127, 50, 0.1), inset 0 0 20px rgba(205, 127, 50, 0.05);
+    order: 3;
+}
+
+/* Floating Icons & Crowns */
+.podium-icon-wrapper {
+    position: absolute;
+    top: -45px; /* Pushed up slightly more */
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 45px;
+    animation: float 3s ease-in-out infinite;
+    filter: drop-shadow(0 5px 5px rgba(0,0,0,0.3));
+    z-index: 10;
+}
+.crown-1 {
+    top: -80px; /* Pushed up much higher so it doesn't overlap the medal */
+    font-size: 60px; /* Bigger crown */
+    text-shadow: 0 0 15px gold;
+}
+
+@keyframes float {
+    0%, 100% { transform: translate(-50%, 0); }
+    50% { transform: translate(-50%, -10px); }
+}
+
+.podium-item h3 { 
+    color: #fff; 
+    margin-top: 20px; /* Pushed text down so it clears the inside top */
+    font-size: 20px; 
+    word-break: break-word; 
+}
+.podium-item .points { font-weight: bold; font-size: 18px; margin-top: 10px; }
+.podium-item .tier { color: var(--muted); font-size: 12px; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+.podium-1 .points { color: gold; text-shadow: 0 0 10px rgba(255, 215, 0, 0.4); }
+.podium-2 .points { color: silver; text-shadow: 0 0 10px rgba(192, 192, 192, 0.4); }
+.podium-3 .points { color: #cd7f32; text-shadow: 0 0 10px rgba(205, 127, 50, 0.4); }
+
+/* Table Styling Fixes */
+.leaderboard-table th { color: var(--primary); }
+.your-rank-box {
+    background: rgba(0, 242, 255, 0.05);
+    border: 1px dashed var(--primary);
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+    text-align: center;
+}

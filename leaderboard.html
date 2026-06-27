@@ -13,20 +13,52 @@
             <h1>🏆 Global Leaderboard</h1>
             <p style="color: var(--muted); margin-bottom: 20px;">Top performers across the Ghost GST platform.</p>
 
-            <table class="leaderboard-table">
+            <!-- Top 3 Glassmorphism Podium -->
+            <div class="podium-container" id="podiumContainer">
+                <!-- 2nd Place -->
+                <div class="podium-item podium-2">
+                    <div class="podium-icon-wrapper">🥈</div>
+                    <h3 id="rank2Name">-</h3>
+                    <div class="points" id="rank2Points">0</div>
+                    <div class="tier" id="rank2Tier">-</div>
+                </div>
+                
+                <!-- 1st Place -->
+                <div class="podium-item podium-1">
+                    <div class="podium-icon-wrapper crown-1">👑</div>
+                    <div class="podium-icon-wrapper" style="top: -15px;">🥇</div>
+                    <h3 id="rank1Name">-</h3>
+                    <div class="points" id="rank1Points">0</div>
+                    <div class="tier" id="rank1Tier">-</div>
+                </div>
+                
+                <!-- 3rd Place -->
+                <div class="podium-item podium-3">
+                    <div class="podium-icon-wrapper">🥉</div>
+                    <h3 id="rank3Name">-</h3>
+                    <div class="points" id="rank3Points">0</div>
+                    <div class="tier" id="rank3Tier">-</div>
+                </div>
+            </div>
+
+            <!-- Ranks 4 to 10 -->
+            <table class="leaderboard-table" id="rankTable">
                 <thead>
                     <tr>
                         <th>Rank</th>
                         <th>Username</th>
                         <th>Tier</th>
                         <th>Points</th>
-                        <th>Best Score</th>
                     </tr>
                 </thead>
-                <tbody id="leaderboardBody">
-                    <tr><td colspan="5" style="text-align: center; color: var(--muted);">Loading global scores...</td></tr>
-                </tbody>
+                <tbody id="leaderboardBody"></tbody>
             </table>
+
+            <!-- Your Rank (If outside top 10) -->
+            <div class="your-rank-box" id="yourRankBox" style="display: none;">
+                <span>Your Position: <strong id="yourRankNum">#0</strong></span> | 
+                <span>Points: <strong id="yourRankPoints">0</strong></span>
+            </div>
         </div>
     </div>
 
@@ -44,7 +76,7 @@
             return "Rookie";
         }
 
-        // Listen to Firebase for scores
+        // Listen to Firebase for REAL-TIME updates
         const scoresRef = ref(db, 'scores/');
         onValue(scoresRef, (snapshot) => {
             const data = snapshot.val();
@@ -52,31 +84,46 @@
             tbody.innerHTML = '';
 
             if(!data) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--muted);">No scores yet. Be the first!</td></tr>';
+                document.getElementById('rank1Name').innerText = "No scores yet";
                 return;
             }
 
-            // Convert object to array and sort by Total Points
-            let users = Object.values(data).sort((a, b) => b.totalPoints - a.totalPoints);
+            // Convert object to array and sort by Total Points descending
+            let users = Object.values(data).sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
 
-            users.forEach((u, index) => {
+            // 1. Fill the Podium (Top 3)
+            for(let i = 0; i < 3; i++) {
+                if(users[i]) {
+                    document.getElementById(`rank${i+1}Name`).innerText = users[i].username;
+                    document.getElementById(`rank${i+1}Points`).innerText = `${users[i].totalPoints || 0} pts`;
+                    document.getElementById(`rank${i+1}Tier`).innerText = getRank(users[i].totalPoints || 0);
+                }
+            }
+
+            // 2. Fill the Table (Ranks 4 to 10)
+            for(let i = 3; i < Math.min(10, users.length); i++) {
+                const u = users[i];
                 const tr = document.createElement('tr');
                 if(u.username === currentUser) tr.classList.add('current-user');
                 
-                let rankClass = '';
-                if(index === 0) rankClass = 'rank-1';
-                else if(index === 1) rankClass = 'rank-2';
-                else if(index === 2) rankClass = 'rank-3';
-
                 tr.innerHTML = `
-                    <td class="${rankClass}">#${index + 1}</td>
+                    <td>#${i + 1}</td>
                     <td>${u.username} ${u.username === currentUser ? '(You)' : ''}</td>
                     <td>${getRank(u.totalPoints || 0)}</td>
                     <td>${u.totalPoints || 0}</td>
-                    <td>${u.bestScore || 0}%</td>
                 `;
                 tbody.appendChild(tr);
-            });
+            }
+
+            // 3. Show Current User's Rank if they are outside Top 10
+            const userIndex = users.findIndex(u => u.username === currentUser);
+            if(userIndex >= 10) {
+                document.getElementById('yourRankBox').style.display = 'block';
+                document.getElementById('yourRankNum').innerText = `#${userIndex + 1}`;
+                document.getElementById('yourRankPoints').innerText = `${users[userIndex].totalPoints || 0} pts`;
+            } else {
+                document.getElementById('yourRankBox').style.display = 'none';
+            }
         });
     </script>
 </body>

@@ -108,37 +108,42 @@
     </script>
 
     <!-- 2. Module Script - Runs safely in the background to update Leaderboard & Check High Score -->
+        <!-- 2. Module Script - Updates Firebase Leaderboard Instantly -->
     <script type="module">
         import { db, ref, get, set } from "./js/firebase.js";
 
+        const activeUser = localStorage.getItem('gst_active_user');
+        if(!activeUser) { window.location.href = 'index.html'; }
+
         try {
-            const userScoreRef = ref(db, 'scores/' + user);
-            get(userScoreRef).then((snapshot) => {
-                const prevData = snapshot.val() || { bestScore: 0, totalPoints: 0 };
-                
-                // Check if new score is higher than previous best
-                if (percentage > prevData.bestScore && score > 0) {
-                    // Trigger Confetti!
-                    triggerCelebration();
-                }
-                
-                // Update Firebase
-                const newTotalPoints = prevData.totalPoints + pointsEarned;
-                set(userScoreRef, {
-                    username: user,
-                    bestScore: Math.max(prevData.bestScore, percentage),
-                    totalPoints: newTotalPoints
-                });
+            const userScoreRef = ref(db, 'scores/' + activeUser);
+            
+            // Get previous data
+            const snapshot = await get(userScoreRef);
+            const prevData = snapshot.val() || { bestScore: 0, totalPoints: 0 };
+            
+            // Check for new high score
+            if (percentage > prevData.bestScore && score > 0) {
+                triggerCelebration();
+            }
+            
+            // Calculate new totals
+            const newTotalPoints = (prevData.totalPoints || 0) + pointsEarned;
+            
+            // SAVE TO FIREBASE IMMEDIATELY
+            await set(userScoreRef, {
+                username: activeUser,
+                bestScore: Math.max(prevData.bestScore, percentage),
+                totalPoints: newTotalPoints
             });
+            
         } catch (e) {
-            console.log("Firebase save skipped:", e);
+            console.log("Firebase update failed:", e);
         }
 
         function triggerCelebration() {
-            // Show badge
             document.getElementById('highScoreBadge').style.display = 'block';
             
-            // Fire confetti
             var duration = 15 * 1000;
             var animationEnd = Date.now() + duration;
             var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
@@ -148,8 +153,6 @@
                 if (timeLeft <= 0) return clearInterval(interval);
 
                 var particleCount = 50 * (timeLeft / duration);
-                
-                // Shoot from left and right
                 confetti(Object.assign({}, defaults, { particleCount, origin: { x: Math.random() * 0.2, y: Math.random() - 0.2 } }));
                 confetti(Object.assign({}, defaults, { particleCount, origin: { x: Math.random() * 0.8 + 0.2, y: Math.random() - 0.2 } }));
             }, 250);
