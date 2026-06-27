@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghost GST - Portal</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card" style="text-align: center;">
+            <h1>👻 Ghost GST Preparation</h1>
+            <h2>Nigerian People & Culture (GST 112)</h2>
+            
+            <div class="tab-container">
+                <div class="tab active" id="loginTab" onclick="switchTab('login')">Login</div>
+                <div class="tab" id="signupTab" onclick="switchTab('signup')">Sign Up</div>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm">
+                <input type="text" id="loginUser" placeholder="Username">
+                <input type="password" id="loginPass" placeholder="Password">
+                <div class="error-msg" id="loginError">Invalid username or password.</div>
+                <button onclick="login()">Login</button>
+            </div>
+
+            <!-- Signup Form -->
+            <div id="signupForm" style="display: none;">
+                <input type="text" id="signupUser" placeholder="Choose a Username">
+                <input type="password" id="signupPass" placeholder="Choose a Password">
+                <div class="error-msg" id="signupError">Username already taken!</div>
+                <button onclick="signup()">Create Account</button>
+            </div>
+        </div>
+    </div>
+
+        <script>
+        // Removed the auto-login redirect so it always asks for login
+        
+        // Mock Database Setup
+        if(!localStorage.getItem('gst_users')) {
+            localStorage.setItem('gst_users', JSON.stringify([])); 
+        }
+        if(!localStorage.getItem('gst_scores')) {
+            localStorage.setItem('gst_scores', JSON.stringify([])); 
+        }
+
+        function switchTab(tab) {
+            if(tab === 'login') {
+                document.getElementById('loginTab').classList.add('active');
+                document.getElementById('signupTab').classList.remove('active');
+                document.getElementById('loginForm').style.display = 'block';
+                document.getElementById('signupForm').style.display = 'none';
+            } else {
+                document.getElementById('signupTab').classList.add('active');
+                document.getElementById('loginTab').classList.remove('active');
+                document.getElementById('signupForm').style.display = 'block';
+                document.getElementById('loginForm').style.display = 'none';
+            }
+        }
+
+        function login() {
+            const user = document.getElementById('loginUser').value.trim();
+            const pass = document.getElementById('loginPass').value;
+            const users = JSON.parse(localStorage.getItem('gst_users'));
+            
+            const found = users.find(u => u.username === user && u.password === pass);
+            
+            if(found) {
+                localStorage.setItem('gst_active_user', user);
+                window.location.href = 'dashboard.html';
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        }
+
+        function signup() {
+            const user = document.getElementById('signupUser').value.trim();
+            const pass = document.getElementById('signupPass').value;
+            const users = JSON.parse(localStorage.getItem('gst_users'));
+            
+            const exists = users.find(u => u.username === user);
+            
+            if(exists) {
+                document.getElementById('signupError').style.display = 'block';
+            } else {
+                users.push({ username: user, password: pass });
+                localStorage.setItem('gst_users', JSON.stringify(users));
+                localStorage.setItem('gst_active_user', user);
+                window.location.href = 'dashboard.html';
+            }
+        }
+    </script>
+</body>
+</html>

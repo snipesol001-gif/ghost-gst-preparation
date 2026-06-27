@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghost GST - Leaderboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <button class="btn-secondary btn-small" onclick="window.location.href='dashboard.html'" style=" width: auto; margin-bottom: 20px;">&larr; Back to Dashboard</button>
+            <h1>🏆 Global Leaderboard</h1>
+            <p style="color: var(--muted); margin-bottom: 20px;">Top performers across the Ghost GST platform.</p>
+
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Username</th>
+                        <th>Tier</th>
+                        <th>Points</th>
+                        <th>Best Score</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboardBody">
+                    <tr><td colspan="5" style="text-align: center; color: var(--muted);">Loading global scores...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, ref, onValue } from "./js/firebase.js";
+        
+        const currentUser = localStorage.getItem('gst_active_user');
+        if(!currentUser) { window.location.href = 'index.html'; }
+
+        function getRank(totalPoints) {
+            if (totalPoints >= 1000) return "Legendary";
+            if (totalPoints >= 500) return "Gold";
+            if (totalPoints >= 200) return "Silver";
+            if (totalPoints >= 50) return "Bronze";
+            return "Rookie";
+        }
+
+        // Listen to Firebase for scores
+        const scoresRef = ref(db, 'scores/');
+        onValue(scoresRef, (snapshot) => {
+            const data = snapshot.val();
+            const tbody = document.getElementById('leaderboardBody');
+            tbody.innerHTML = '';
+
+            if(!data) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--muted);">No scores yet. Be the first!</td></tr>';
+                return;
+            }
+
+            // Convert object to array and sort by Total Points
+            let users = Object.values(data).sort((a, b) => b.totalPoints - a.totalPoints);
+
+            users.forEach((u, index) => {
+                const tr = document.createElement('tr');
+                if(u.username === currentUser) tr.classList.add('current-user');
+                
+                let rankClass = '';
+                if(index === 0) rankClass = 'rank-1';
+                else if(index === 1) rankClass = 'rank-2';
+                else if(index === 2) rankClass = 'rank-3';
+
+                tr.innerHTML = `
+                    <td class="${rankClass}">#${index + 1}</td>
+                    <td>${u.username} ${u.username === currentUser ? '(You)' : ''}</td>
+                    <td>${getRank(u.totalPoints || 0)}</td>
+                    <td>${u.totalPoints || 0}</td>
+                    <td>${u.bestScore || 0}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghost GST - Exam</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div id="quizContent">
+                <p style="color: var(--primary); margin-bottom: 10px;">Question <span id="qNum">1</span> of 40</p>
+                <h2 id="questionText" style="font-size: 22px; margin-bottom: 20px;"></h2>
+                
+                <div id="optionsContainer"></div>
+                
+                <div class="explanation" id="explanationBox">
+                    <strong style="color: var(--primary);">Explanation:</strong>
+                    <p id="explanationText"></p>
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-top: 20px;">
+                    <button id="prevBtn" onclick="prevQuestion()" style="display: none; background: transparent; border: 1px solid #fff; width: 100%;">Previous</button>
+                    <button id="nextBtn" onclick="nextQuestion()" style="display: none; width: 100%;">Next Question</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/questions.js"></script>
+    <script src="js/quiz.js"></script>
+</body>
+</html>

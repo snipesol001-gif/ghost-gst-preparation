@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghost GST - Results</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card" style="text-align: center;">
+            <h1>Exam Complete! 👻</h1>
+            <h2 id="scoreDisplay"></h2>
+            <p id="passFailText" style="font-size: 18px; margin-bottom: 20px;"></p>
+
+            <div class="note-box">
+                <h3 style="color: var(--primary); margin-bottom: 10px;">📝 Quick Revision Notes</h3>
+                <ul style="text-align: left;">
+                    <li><strong>Amalgamation (1914):</strong> Lord Lugard merged Northern & Southern protectorates for administrative and economic convenience, not cultural unity.</li>
+                    <li><strong>Indirect Rule:</strong> Successful in the North (Centralized Emirs), failed in the East (Acephalous/Igbo lacked kings, leading to the invention of Warrant Chiefs).</li>
+                    <li><strong>Constitutions:</strong> Clifford (1922) introduced Elective Principle; Richards (1946) entrenched Regionalism; Lyttelton (1954) established true Federalism.</li>
+                    <li><strong>Political Parties:</strong> NPC (North/Conservative), AG (West/Progressive), NCNC (East/Nationalist).</li>
+                    <li><strong>Kinship:</strong> Consanguinea (blood), Affinity (marriage). Primary (parents/siblings), Secondary (uncles/aunts), Tertiary (cousins-in-law).</li>
+                    <li><strong>Marriage Rules:</strong> Endogamy (marrying within group), Exogamy (marrying outside group).</li>
+                    <li><strong>Origins:</strong> Yoruba (Oduduwa/Ile-Ife), Bini (Ogiso era -> Eweka I), Hausa (Bayajida), Igbo (Acephalous/Direct Democracy via Amala Oha).</li>
+                </ul>
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-top: 20px;">
+                <button onclick="replay()">Replay Exam</button>
+                <button class="btn-secondary" onclick="window.location.href='leaderboard.html'">View Leaderboard</button>
+            </div>
+            <button class="btn-secondary" onclick="logout()" style="margin-top: 10px;">Logout</button>
+        </div>
+    </div>
+
+            <script type="module">
+        import { db, ref, get, set } from "./js/firebase.js";
+
+        const user = localStorage.getItem('gst_active_user');
+        if(!user) { window.location.href = 'index.html'; }
+
+        const score = parseInt(localStorage.getItem('gst_temp_score'));
+        const total = parseInt(localStorage.getItem('gst_temp_total'));
+        const percentage = Math.round((score / total) * 100);
+        const pointsEarned = score * 10; // 10 points per correct answer
+
+        document.getElementById('scoreDisplay').innerText = `You scored ${score} / ${total}`;
+
+        // Rank Logic
+        function getRank(totalPoints) {
+            if (totalPoints >= 1000) return "Legendary";
+            if (totalPoints >= 500) return "Gold";
+            if (totalPoints >= 200) return "Silver";
+            if (totalPoints >= 50) return "Bronze";
+            return "Rookie";
+        }
+
+        // 1. Save Score & Points to Firebase
+        const userScoreRef = ref(db, 'scores/' + user);
+        get(userScoreRef).then((snapshot) => {
+            const prevData = snapshot.val() || { bestScore: 0, totalPoints: 0 };
+            const newTotalPoints = prevData.totalPoints + pointsEarned;
+            
+            set(userScoreRef, {
+                username: user,
+                bestScore: Math.max(prevData.bestScore, percentage),
+                totalPoints: newTotalPoints
+            });
+
+            // Display Rank and Points on the page
+            document.getElementById('passFailText').innerHTML = `
+                🏆 Rank: <strong>${getRank(newTotalPoints)}</strong><br>
+                ⭐ Points Earned: <strong>+${pointsEarned}</strong> (Total: ${newTotalPoints})
+            `;
+            document.getElementById('passFailText').style.color = "var(--primary)";
+        });
+
+        function replay() { window.location.href = 'quiz.html'; }
+        function logout() {
+            localStorage.removeItem('gst_active_user');
+            window.location.href = 'index.html';
+        }
+
+        window.replay = replay;
+        window.logout = logout;
+    </script>
+</body>
+</html>

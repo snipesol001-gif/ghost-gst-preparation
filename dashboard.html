@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghost GST - Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .online-list { margin-top: 20px; background: #0f0f1a; padding: 20px; border-radius: 12px; border: 1px solid #2a2a3a; }
+        .online-user { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #2a2a3a; cursor: pointer; transition: 0.2s; }
+        .online-user:hover { padding-left: 10px; }
+        .online-user:last-child { border-bottom: none; }
+        .status-dot { height: 10px; width: 10px; background: var(--success); border-radius: 50%; margin-right: 15px; box-shadow: 0 0 5px var(--success); }
+        
+        /* Modal Styles */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 100; }
+        .modal-box { background: #141423; padding: 30px; border-radius: 16px; border: 1px solid #2a2a3a; width: 350px; text-align: center; }
+        .modal-box h2 { color: var(--primary); }
+        .modal-stat { background: #0f0f1a; padding: 15px; border-radius: 8px; margin: 15px 0; }
+        .modal-stat span { display: block; color: var(--muted); font-size: 12px; text-transform: uppercase; }
+        .modal-stat strong { font-size: 20px; color: var(--text); }
+        .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-btns button { margin-top: 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <button class="btn-secondary btn-small" onclick="logout()" style=" width: auto; margin-bottom: 20px;">🚪 Logout</button>
+            
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1>Welcome, <span id="userDisplay"></span> 👋</h1>
+                <p style="color: var(--muted);">What are we doing today?</p>
+            </div>
+            
+            <div class="grid-2">
+                <div class="nav-card" onclick="window.location.href='quiz.html'">
+                    <h3>📝 Take Exam</h3>
+                    <p>40 Random Questions. Test your knowledge.</p>
+                </div>
+                <div class="nav-card" onclick="window.location.href='study.html'">
+                    <h3>📚 Study Hub</h3>
+                    <p>Flashcards & Cram Notes.</p>
+                </div>
+                <div class="nav-card" onclick="window.location.href='leaderboard.html'">
+                    <h3>🏆 Leaderboard</h3>
+                    <p>See how you rank against others.</p>
+                </div>
+            </div>
+
+            <div class="online-list">
+                <h3 style="color: var(--primary); margin-bottom: 15px;">🟢 Online Users (<span id="onlineCount">0</span>)</h3>
+                <p style="color: var(--muted); font-size: 12px; margin-bottom: 10px;">Click a user to view profile & challenge.</p>
+                <div id="onlineUsersContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Profile Modal -->
+    <div class="modal-overlay" id="profileModal">
+        <div class="modal-box">
+            <h2 id="modalUsername">User</h2>
+            <div class="modal-stat">
+                <span>Global Rank</span>
+                <strong id="modalRank">-</strong>
+            </div>
+            <div class="modal-stat">
+                <span>Best Score</span>
+                <strong id="modalScore">-</strong>
+            </div>
+            <div class="modal-btns">
+                <button onclick="sendChallenge()" id="challengeBtn">Request Match</button>
+                <button class="btn-secondary" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Incoming Challenge Modal -->
+    <div class="modal-overlay" id="challengeModal">
+        <div class="modal-box">
+            <h2 style="color: var(--secondary);">⚔️ Challenge!</h2>
+            <p style="margin: 15px 0;"><strong id="challengerName"></strong> wants to challenge you to a match!</p>
+            <div class="modal-btns">
+                <button onclick="acceptChallenge()">Accept</button>
+                <button class="btn-secondary" onclick="declineChallenge()">Decline</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, ref, set, get, onValue, onDisconnect, remove, serverTimestamp } from "./js/firebase.js";
+        
+        const user = localStorage.getItem('gst_active_user');
+        if(!user) { window.location.href = 'index.html'; }
+        document.getElementById('userDisplay').innerText = user;
+
+        window.logout = function() {
+            remove(ref(db, 'online/' + user));
+            localStorage.removeItem('gst_active_user');
+            window.location.href = 'index.html';
+        }
+
+        // 1. Set user as Online
+        const userStatusRef = ref(db, 'online/' + user);
+        set(userStatusRef, { username: user, online: true });
+        onDisconnect(userStatusRef).remove();
+
+        let currentProfileUser = null;
+        let allScores = [];
+
+        // Listen for Global Scores (to calculate rank)
+        onValue(ref(db, 'scores/'), (snapshot) => {
+            const data = snapshot.val() || {};
+            allScores = Object.values(data).sort((a, b) => b.bestScore - a.bestScore);
+        });
+
+        // 2. Listen for Online Users
+        onValue(ref(db, 'online/'), (snapshot) => {
+            const data = snapshot.val();
+            const container = document.getElementById('onlineUsersContainer');
+            container.innerHTML = '';
+            let count = 0;
+            
+            for (const key in data) {
+                count++;
+                const div = document.createElement('div');
+                div.className = 'online-user';
+                div.onclick = () => showProfile(key);
+                
+                let userLabel = key === user ? `${key} (You)` : key;
+                div.innerHTML = `
+                    <div class="status-dot"></div>
+                    <span>${userLabel}</span>
+                `;
+                container.appendChild(div);
+            }
+            document.getElementById('onlineCount').innerText = count;
+        });
+
+        // 3. Show Profile Modal
+        window.showProfile = function(username) {
+            if(username === user) return; // Don't show modal for yourself
+            currentProfileUser = username;
+            document.getElementById('modalUsername').innerText = username;
+            
+            // Calculate Rank
+            const userIndex = allScores.findIndex(u => u.username === username);
+            const scoreData = allScores[userIndex];
+            
+            document.getElementById('modalRank').innerText = userIndex >= 0 ? `#${userIndex + 1}` : 'Unranked';
+            document.getElementById('modalScore').innerText = scoreData ? `${scoreData.bestScore}%` : '0%';
+            
+            document.getElementById('profileModal').style.display = 'flex';
+        }
+        window.closeModal = function() {
+            document.getElementById('profileModal').style.display = 'none';
+        }
+
+        // 4. Challenge System
+        window.sendChallenge = function() {
+            if(!currentProfileUser) return;
+            const challengeRef = ref(db, 'challenges/' + currentProfileUser);
+            set(challengeRef, {
+                from: user,
+                timestamp: Date.now()
+            });
+            alert(`Challenge sent to ${currentProfileUser}! Waiting for response...`);
+            closeModal();
+        }
+
+        // 5. Listen for Incoming Challenges
+        const myChallengeRef = ref(db, 'challenges/' + user);
+        onValue(myChallengeRef, (snapshot) => {
+            const data = snapshot.val();
+            if(data) {
+                document.getElementById('challengerName').innerText = data.from;
+                document.getElementById('challengeModal').style.display = 'flex';
+            } else {
+                document.getElementById('challengeModal').style.display = 'none';
+            }
+        });
+
+        window.acceptChallenge = function() {
+            // Redirect both to match page (we will build this next)
+            remove(myChallengeRef);
+            window.location.href = 'challenge.html';
+        }
+
+        window.declineChallenge = function() {
+            remove(myChallengeRef);
+        }
+    </script>
+</body>
+</html>

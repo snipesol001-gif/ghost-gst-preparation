@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghost GST - Study Hub</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <button class="btn-secondary btn-small" onclick="window.location.href='dashboard.html'" style=" width: auto; margin-bottom: 20px;">&larr; Back to Dashboard</button>
+            <h1>📚 Study Hub</h1>
+            
+            <h2>Flashcards (Click to Flip)</h2>
+            <div class="grid-2" id="flashcardContainer">
+                <!-- Flashcards injected by JS -->
+            </div>
+
+            <div class="note-box" style="margin-top: 40px;">
+                <h2 style="color: var(--primary);">📝 Quick Cram Notes</h2>
+                <ul>
+                    <li><strong>Amalgamation (1914):</strong> Lord Lugard merged Northern & Southern protectorates for administrative/economic convenience.</li>
+                    <li><strong>Indirect Rule:</strong> Successful in North (Centralized Emirs), failed in East (Acephalous/Igbo lacked kings -> Warrant Chiefs invented).</li>
+                    <li><strong>Constitutions:</strong> Clifford (1922) = Elective Principle; Richards (1946) = Regionalism; Lyttelton (1954) = True Federalism.</li>
+                    <li><strong>Political Parties:</strong> NPC (North/Conservative), AG (West/Progressive), NCNC (East/Nationalist). NEPU represented Talakawa.</li>
+                    <li><strong>Kinship:</strong> Consanguinea (blood), Affinity (marriage). Primary (parents), Secondary (uncles), Tertiary (cousins-in-law).</li>
+                    <li><strong>Marriage Rules:</strong> Endogamy (marry within group), Exogamy (marry outside group). Polyandry = 1 woman, multiple men.</li>
+                    <li><strong>Origins:</strong> Yoruba (Oduduwa/Ile-Ife), Bini (Ogiso -> Eweka I), Hausa (Bayajida), Igbo (Acephalous/Amala Oha assembly).</li>
+                    <li><strong>Kanem-Bornu:</strong> Saifawa dynasty. Council of 12 = Nokena. Chief Judge = Maini Kanendi.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const flashcards = [
+            { q: "What is Consanguinea?", a: "Kinship through blood relation." },
+            { q: "Who introduced Indirect Rule?", a: "Lord Frederick Lugard." },
+            { q: "What does Acephalous mean?", a: "A society without a centralized head or king (e.g., traditional Igbo)." },
+            { q: "Who founded the NNDP in 1922?", a: "Herbert Macaulay." },
+            { q: "What is Exogamy?", a: "A rule prohibiting marriage within one's own social group or blood relatives." },
+            { q: "Who was the first Oba of Benin's current dynasty?", a: "Eweka I (son of Oranmiyan)." }
+        ];
+
+        const container = document.getElementById('flashcardContainer');
+        flashcards.forEach(fc => {
+            const div = document.createElement('div');
+            div.className = 'flashcard';
+            div.innerHTML = `
+                <div class="flashcard-inner">
+                    <div class="flashcard-front"><h3>${fc.q}</h3></div>
+                    <div class="flashcard-back"><p>${fc.a}</p></div>
+                </div>
+            `;
+            div.onclick = () => div.classList.toggle('flipped');
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html>
