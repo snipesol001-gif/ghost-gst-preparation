@@ -7,23 +7,33 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <!-- BULLETPROOF AUTH & LOGOUT SCRIPT -->
+    <script>
+        const currentUser = localStorage.getItem('gst_active_user');
+        if (!currentUser) { window.location.href = 'index.html'; }
+        function logout() {
+            localStorage.removeItem('gst_active_user');
+            window.location.href = 'index.html';
+        }
+    </script>
+
     <div class="container">
         <div class="card">
-            <button class="btn-secondary btn-small" onclick="window.location.href='dashboard.html'" style=" width: auto; margin-bottom: 20px;">&larr; Back to Dashboard</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <button class="btn-secondary btn-small" onclick="window.location.href='dashboard.html'" style="width: auto;">&larr; Back</button>
+                <button class="btn-secondary btn-small" onclick="logout()" style="width: auto;">🚪 Logout</button>
+            </div>
             <h1>🏆 Global Leaderboard</h1>
             <p style="color: var(--muted); margin-bottom: 20px;">Top performers across the Ghost GST platform.</p>
 
             <!-- Top 3 Glassmorphism Podium -->
             <div class="podium-container" id="podiumContainer">
-                <!-- 2nd Place -->
                 <div class="podium-item podium-2">
                     <div class="podium-icon-wrapper">🥈</div>
                     <h3 id="rank2Name">-</h3>
                     <div class="points" id="rank2Points">0</div>
                     <div class="tier" id="rank2Tier">-</div>
                 </div>
-                
-                <!-- 1st Place -->
                 <div class="podium-item podium-1">
                     <div class="podium-icon-wrapper crown-1">👑</div>
                     <div class="podium-icon-wrapper" style="top: -15px;">🥇</div>
@@ -31,8 +41,6 @@
                     <div class="points" id="rank1Points">0</div>
                     <div class="tier" id="rank1Tier">-</div>
                 </div>
-                
-                <!-- 3rd Place -->
                 <div class="podium-item podium-3">
                     <div class="podium-icon-wrapper">🥉</div>
                     <h3 id="rank3Name">-</h3>
@@ -41,7 +49,6 @@
                 </div>
             </div>
 
-            <!-- Ranks 4 to 10 -->
             <table class="leaderboard-table" id="rankTable">
                 <thead>
                     <tr>
@@ -51,10 +58,11 @@
                         <th>Points</th>
                     </tr>
                 </thead>
-                <tbody id="leaderboardBody"></tbody>
+                <tbody id="leaderboardBody">
+                    <tr><td colspan="4" style="text-align: center; color: var(--muted);">Loading leaderboard...</td></tr>
+                </tbody>
             </table>
 
-            <!-- Your Rank (If outside top 10) -->
             <div class="your-rank-box" id="yourRankBox" style="display: none;">
                 <span>Your Position: <strong id="yourRankNum">#0</strong></span> | 
                 <span>Points: <strong id="yourRankPoints">0</strong></span>
@@ -65,9 +73,6 @@
     <script type="module">
         import { db, ref, onValue } from "./js/firebase.js";
         
-        const currentUser = localStorage.getItem('gst_active_user');
-        if(!currentUser) { window.location.href = 'index.html'; }
-
         function getRank(totalPoints) {
             if (totalPoints >= 1000) return "Legendary";
             if (totalPoints >= 500) return "Gold";
@@ -76,55 +81,54 @@
             return "Rookie";
         }
 
-        // Listen to Firebase for REAL-TIME updates
-        const scoresRef = ref(db, 'scores/');
-        onValue(scoresRef, (snapshot) => {
-            const data = snapshot.val();
-            const tbody = document.getElementById('leaderboardBody');
-            tbody.innerHTML = '';
+        try {
+            const scoresRef = ref(db, 'scores/');
+            onValue(scoresRef, (snapshot) => {
+                const data = snapshot.val();
+                const tbody = document.getElementById('leaderboardBody');
+                tbody.innerHTML = '';
 
-            if(!data) {
-                document.getElementById('rank1Name').innerText = "No scores yet";
-                return;
-            }
-
-            // Convert object to array and sort by Total Points descending
-            let users = Object.values(data).sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
-
-            // 1. Fill the Podium (Top 3)
-            for(let i = 0; i < 3; i++) {
-                if(users[i]) {
-                    document.getElementById(`rank${i+1}Name`).innerText = users[i].username;
-                    document.getElementById(`rank${i+1}Points`).innerText = `${users[i].totalPoints || 0} pts`;
-                    document.getElementById(`rank${i+1}Tier`).innerText = getRank(users[i].totalPoints || 0);
+                if (!data) {
+                    // If no one has taken an exam yet
+                    document.getElementById('rank1Name').innerText = "No scores yet";
+                    document.getElementById('rank2Name').innerText = "-";
+                    document.getElementById('rank3Name').innerText = "-";
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--muted);">Take an exam to be the first on the board!</td></tr>';
+                    return;
                 }
-            }
 
-            // 2. Fill the Table (Ranks 4 to 10)
-            for(let i = 3; i < Math.min(10, users.length); i++) {
-                const u = users[i];
-                const tr = document.createElement('tr');
-                if(u.username === currentUser) tr.classList.add('current-user');
-                
-                tr.innerHTML = `
-                    <td>#${i + 1}</td>
-                    <td>${u.username} ${u.username === currentUser ? '(You)' : ''}</td>
-                    <td>${getRank(u.totalPoints || 0)}</td>
-                    <td>${u.totalPoints || 0}</td>
-                `;
-                tbody.appendChild(tr);
-            }
+                let users = Object.values(data).sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
 
-            // 3. Show Current User's Rank if they are outside Top 10
-            const userIndex = users.findIndex(u => u.username === currentUser);
-            if(userIndex >= 10) {
-                document.getElementById('yourRankBox').style.display = 'block';
-                document.getElementById('yourRankNum').innerText = `#${userIndex + 1}`;
-                document.getElementById('yourRankPoints').innerText = `${users[userIndex].totalPoints || 0} pts`;
-            } else {
-                document.getElementById('yourRankBox').style.display = 'none';
-            }
-        });
+                for (let i = 0; i < 3; i++) {
+                    if (users[i]) {
+                        document.getElementById(`rank${i+1}Name`).innerText = users[i].username;
+                        document.getElementById(`rank${i+1}Points`).innerText = `${users[i].totalPoints || 0} pts`;
+                        document.getElementById(`rank${i+1}Tier`).innerText = getRank(users[i].totalPoints || 0);
+                    }
+                }
+
+                for (let i = 3; i < Math.min(10, users.length); i++) {
+                    const u = users[i];
+                    const tr = document.createElement('tr');
+                    if (u.username === currentUser) tr.classList.add('current-user');
+                    tr.innerHTML = `<td>#${i + 1}</td><td>${u.username} ${u.username === currentUser ? '(You)' : ''}</td><td>${getRank(u.totalPoints || 0)}</td><td>${u.totalPoints || 0}</td>`;
+                    tbody.appendChild(tr);
+                }
+
+                const userIndex = users.findIndex(u => u.username === currentUser);
+                if (userIndex >= 10) {
+                    document.getElementById('yourRankBox').style.display = 'block';
+                    document.getElementById('yourRankNum').innerText = `#${userIndex + 1}`;
+                    document.getElementById('yourRankPoints').innerText = `${users[userIndex].totalPoints || 0} pts`;
+                }
+            }, (error) => {
+                // This catches Firebase permission errors!
+                console.error("Firebase Error:", error);
+                document.getElementById('leaderboardBody').innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--danger);">Error loading data. Check console (F12).</td></tr>`;
+            });
+        } catch (e) {
+            console.error("Module Import Error:", e);
+        }
     </script>
 </body>
 </html>

@@ -24,6 +24,19 @@
     </style>
 </head>
 <body>
+    <!-- BULLETPROOF AUTH & LOGOUT SCRIPT -->
+    <script>
+        const currentUser = localStorage.getItem('gst_active_user');
+        if (!currentUser) { window.location.href = 'index.html'; }
+        
+        function logout() {
+            localStorage.removeItem('gst_active_user');
+            localStorage.removeItem('gst_total_points');
+            window.location.href = 'index.html';
+        }
+    </script>
+
+    <!-- REST OF YOUR HTML BELOW... -->
     <div class="container">
         <div class="card">
             <button class="btn-secondary btn-small" onclick="logout()" style=" width: auto; margin-bottom: 20px;">🚪 Logout</button>

@@ -27,6 +27,19 @@
     </style>
 </head>
 <body>
+    <!-- BULLETPROOF AUTH & LOGOUT SCRIPT -->
+    <script>
+        const currentUser = localStorage.getItem('gst_active_user');
+        if (!currentUser) { window.location.href = 'index.html'; }
+        
+        function logout() {
+            localStorage.removeItem('gst_active_user');
+            localStorage.removeItem('gst_total_points');
+            window.location.href = 'index.html';
+        }
+    </script>
+
+    <!-- REST OF YOUR HTML BELOW... -->
     <div class="container">
         <div class="card" style="text-align: center;">
             <h1>Exam Complete! 👻</h1>
@@ -109,49 +122,75 @@
 
     <!-- 2. Module Script - Runs safely in the background to update Leaderboard & Check High Score -->
         <!-- 2. Module Script - Updates Firebase Leaderboard Instantly -->
+        <script>
+        const user = localStorage.getItem('gst_active_user');
+        if(!user) { window.location.href = 'index.html'; }
+
+        const score = parseInt(localStorage.getItem('gst_temp_score') || 0);
+        const total = parseInt(localStorage.getItem('gst_temp_total') || 1);
+        const percentage = Math.round((score / total) * 100);
+        const pointsEarned = parseInt(localStorage.getItem('gst_temp_points') || 0); // Get Speed Points
+
+        document.getElementById('scoreDisplay').innerText = `You scored ${score} / ${total}`;
+
+        function getRank(totalPoints) {
+            if (totalPoints >= 1000) return "Legendary";
+            if (totalPoints >= 500) return "Gold";
+            if (totalPoints >= 200) return "Silver";
+            if (totalPoints >= 50) return "Bronze";
+            return "Rookie";
+        }
+
+        let localPoints = parseInt(localStorage.getItem('gst_total_points') || 0);
+        let newTotalPoints = localPoints + pointsEarned;
+        localStorage.setItem('gst_total_points', newTotalPoints);
+
+        let resultText = "";
+        if (percentage >= 50) resultText = `🎉 Congratulations ${user}! You passed.<br>`;
+        else resultText = `😕 Oops ${user}! You failed. Review the notes.<br>`;
+        
+        resultText += `🏆 Rank: <strong>${getRank(newTotalPoints)}</strong><br>⭐ Points Earned: <strong>+${pointsEarned}</strong> (Total: ${newTotalPoints})`;
+        document.getElementById('passFailText').innerHTML = resultText;
+        document.getElementById('passFailText').style.color = percentage >= 50 ? "var(--success)" : "var(--danger)";
+
+        function replay() { window.location.href = 'quiz.html'; }
+        function logout() { localStorage.removeItem('gst_active_user'); window.location.href = 'index.html'; }
+        window.replay = replay;
+        window.logout = logout;
+    </script>
+
     <script type="module">
         import { db, ref, get, set } from "./js/firebase.js";
 
-        const activeUser = localStorage.getItem('gst_active_user');
-        if(!activeUser) { window.location.href = 'index.html'; }
-
-        try {
-            const userScoreRef = ref(db, 'scores/' + activeUser);
-            
-            // Get previous data
-            const snapshot = await get(userScoreRef);
-            const prevData = snapshot.val() || { bestScore: 0, totalPoints: 0 };
-            
-            // Check for new high score
-            if (percentage > prevData.bestScore && score > 0) {
-                triggerCelebration();
+        async function saveScore() {
+            try {
+                const userScoreRef = ref(db, 'scores/' + user);
+                const snapshot = await get(userScoreRef);
+                const prevData = snapshot.val() || { bestScore: 0, totalPoints: 0 };
+                
+                if (percentage > prevData.bestScore && score > 0) triggerCelebration();
+                
+                const newTotalPoints = (prevData.totalPoints || 0) + pointsEarned;
+                
+                await set(userScoreRef, {
+                    username: user,
+                    bestScore: Math.max(prevData.bestScore, percentage),
+                    totalPoints: newTotalPoints
+                });
+            } catch (e) {
+                console.log("Firebase update failed:", e);
             }
-            
-            // Calculate new totals
-            const newTotalPoints = (prevData.totalPoints || 0) + pointsEarned;
-            
-            // SAVE TO FIREBASE IMMEDIATELY
-            await set(userScoreRef, {
-                username: activeUser,
-                bestScore: Math.max(prevData.bestScore, percentage),
-                totalPoints: newTotalPoints
-            });
-            
-        } catch (e) {
-            console.log("Firebase update failed:", e);
         }
+        saveScore();
 
         function triggerCelebration() {
             document.getElementById('highScoreBadge').style.display = 'block';
-            
             var duration = 15 * 1000;
             var animationEnd = Date.now() + duration;
             var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
-
             var interval = setInterval(function() {
                 var timeLeft = animationEnd - Date.now();
                 if (timeLeft <= 0) return clearInterval(interval);
-
                 var particleCount = 50 * (timeLeft / duration);
                 confetti(Object.assign({}, defaults, { particleCount, origin: { x: Math.random() * 0.2, y: Math.random() - 0.2 } }));
                 confetti(Object.assign({}, defaults, { particleCount, origin: { x: Math.random() * 0.8 + 0.2, y: Math.random() - 0.2 } }));
